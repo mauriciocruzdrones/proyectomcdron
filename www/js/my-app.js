@@ -17,6 +17,10 @@ var app = new Framework7({
     // Add default routes
     routes: [
       {
+        path: '/inicio/',
+        url: 'inicio.html',
+      },
+      {
         path: '/index/',
         url: 'index.html',
       },
@@ -52,9 +56,13 @@ var app = new Framework7({
 
 var mainView = app.views.create('.view-main');
 
+var db = firebase.firestore();
+var colUsuarios = db.collection("USUARIOS");
+
 // Handle Cordova Device Ready Event
 $$(document).on('deviceready', function() {
     console.log("Device is ready!");
+    //inicializarTablas();
 });
 
 
@@ -63,66 +71,18 @@ $$(document).on('deviceready', function() {
 $$(document).on('page:init', function (e) {
     // Do something here when page with data-name="about" attribute loaded and initialized
 
-    function registro(){
-      var email = $$("#regEmail").val();
-      var password = $$("#regContra").val();
-
-      if(email!="" && password!=""){
-
-          firebase.auth().createUserWithEmailAndPassword(email,password)
-
-          .then(function(){
-            //todo lo que tiene que hacer si se registró
-
-            console.log("Se registró");
-
-          })
-          .catch(function(error){
-            //Handle Errors here
-            var errorCode = error.code;
-            var errorMessage = error.messge;
-            if(errorCode == 'auth/weak-password'){
-                console.log('Clave muy débil');
-            }else{
-                console.log(errorMessage);
-            };
-          });
-      }else{
-        app.dialog.alert("Completa todo los campos","Atención");
-      };
-    }
-
-    function login(){
-      var email = $$("#logEmail").val();
-      var password = $$("#logContra").val();
-
-      if(email!="" && password!=""){
-
-          firebase.auth().signInWithEmailAndPassword(email,password)
-
-          .then(function(){
-            //todo lo que tiene que hacer si se registró
-
-            console.log("Se logueó");
-
-          })
-          .catch(function(error){
-            //Handle Errors here
-            var errorCode = error.code;
-            var errorMessage = error.messge;
-            if(errorCode == 'auth/weak-password'){
-                console.log('Clave muy débil');
-            }else{
-                console.log(errorMessage);
-            };
-          });
-      }else{
-        app.dialog.alert("Completa todo los campos","Atención");
-      };
-    }
+    
 
     $$(".irPerfil").on("click",function(){
       mainView.router.navigate('/perfil/');
+    });
+
+    $$(".irIndex").on("click",function(){
+      mainView.router.navigate('/index/');
+    });
+
+    $$(".irInicio").on("click",function(){
+      mainView.router.navigate('/inicio/');
     });
 
     $$(".irRegistro").on("click",function(){
@@ -153,4 +113,90 @@ $$(document).on('page:init', function (e) {
 $$(document).on('page:init', '.page[data-name="about"]', function (e) {
     // Do something here when page with data-name="about" attribute loaded and initialized
     console.log(e);
-})
+});
+
+function registro(){
+  var email = $$("#regEmail").val();
+  var password = $$("#regContra").val();
+  var password2 = $$("#regContra2").val();
+  var nick = $$('#regNick').val();
+
+  if(email!="" && password!=""){
+    if(password==password2){
+        firebase.auth().createUserWithEmailAndPassword(email,password)
+        .then(function(){
+          //todo lo que tiene que hacer si se registró
+          console.log("Se registró");
+
+          firebase.auth().currentUser.sendEmailVerification();
+          app.dialog.alert("Verifique su email. Compruebe su casilla de correos","Atención");
+
+          datos = {Nick: nick};
+          colUsuarios.doc(email).set(datos);
+          mainView.router.navigate('/login/');
+        })
+        .catch(function(error){
+          //Handle Errors here
+          console.log("Entró al catch");
+          var errorCode = error.code;
+          var errorMessage = error.messge;
+          if(errorCode == 'auth/weak-password'){
+              console.log('Clave muy débil');
+          }else{
+              console.log(errorCode + "   "  + errorMessage);
+          };
+        });
+    }else{
+      app.dialog.alert("Las contraseñas no son iguales","Atención");
+    };
+  }else{
+    app.dialog.alert("Completa todos los campos","Atención");
+  }
+}
+
+function login(){
+  var email = $$("#logEmail").val();
+  var password = $$("#logContra").val();
+
+  if(email!="" && password!=""){
+
+      firebase.auth().signInWithEmailAndPassword(email,password)
+      .then(function(){
+        //todo lo que tiene que hacer si se registró
+        console.log("Se logueó");
+
+        firebase.auth().onAuthStateChanged(function(user) { 
+          if (user.emailVerified) {
+            console.log('Email is verified');
+            mainView.router.navigate('/inicio/');
+          }
+          else {
+            console.log('Email is not verified');
+            app.dialog.alert("Falta verificar el email. Compruebe su casilla de correos","Atención");
+            firebase.auth().currentUser.sendEmailVerification();
+          }
+        });        
+      })
+      .catch(function(error){
+        //Handle Errors here
+        var errorCode = error.code;
+        var errorMessage = error.messge;
+        if(errorCode == 'auth/weak-password'){
+            console.log('Clave muy débil');
+        }else{
+            console.log(errorMessage);
+        };
+      });
+  }else{
+    app.dialog.alert("Completa todo los campos","Atención");
+  };
+}
+
+/*inicializarTablas(){
+
+  var email = "a@a.com";
+  var datos = { Ciudad: "Rosario", Provincia: "Santa Fe", Habitantes: 1400000 };
+  colCiudades.doc(cp).set(datos);
+
+}*/
+
