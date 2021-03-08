@@ -104,6 +104,11 @@ $$(document).on('page:init', function (e) {
       console.log("click loguearse");
       login();
     });
+
+    $$(".irRecuperar").on("click",function(){
+      console.log("click recuperar");
+      recuperaContra();
+    });
 });
 
 
@@ -128,7 +133,29 @@ function registro(){
           //todo lo que tiene que hacer si se registró
           console.log("Se registró");
 
-          firebase.auth().currentUser.sendEmailVerification();
+          //POR QUE ESTO NO FUNCIONA????
+          /*
+          firebase.auth().onAuthStateChanged(function(user) {
+            console.log("user.displayName: " + user.displayName);
+            user.displayName = nick;
+            console.log("user.displayName: " + user.displayName);
+            user.sendEmailVerification();
+          });
+          */
+
+          firebase.auth().onAuthStateChanged(function(user) {
+            console.log("user.displayName: " + user.displayName);
+            user
+            .updateProfile({ 
+              displayName: nick,
+              app_name: "App MC Dron"
+            })
+            .then(function(){
+              console.log("user.displayName: " + user.displayName);
+              user.sendEmailVerification();
+            });
+          });
+
           app.dialog.alert("Verifique su email. Compruebe su casilla de correos","Atención");
 
           datos = {Nick: nick};
@@ -189,6 +216,26 @@ function login(){
       });
   }else{
     app.dialog.alert("Completa todo los campos","Atención");
+  };
+}
+
+
+function recuperaContra(){
+  var email = $$("#logEmail").val();
+
+  console.log("Entra a recuperaContra")
+
+  if(email!=""){
+    firebase.auth().sendPasswordResetEmail(email)
+      .then(function() {
+        // Password reset email sent.
+        app.dialog.alert("Te enviamos un email para cambiar la contraseña","Atención");
+      })
+      .catch(function(error) {
+        // Error occurred. Inspect error.code.
+      });
+  }else{
+    app.dialog.alert("Completa el email","Atención");
   };
 }
 
